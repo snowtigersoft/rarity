@@ -127,3 +127,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+ftm-metamask-summoner.csv
