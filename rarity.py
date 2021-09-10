@@ -5,6 +5,7 @@ import configparser
 
 address = "0xce761D788DF608BD21bdd59d6f4B54b2e27F25Bb"
 gold_address = "0x2069B76Afe6b734Fb65D1d099E7ec64ee9CC76B2"
+rarity_crafting_materials = "0x2A0F1cB17680161cF255348dDFDeE94ea8Ca196A"
 users = {}
 
 
@@ -22,6 +23,7 @@ def execute(acc, ids):
 
     rarity = load_contract(address, user=users[acc])
     gold = load_contract(gold_address, user=users[acc])
+    craft1 = load_contract(rarity_crafting_materials, user=users[acc])
 
     for id in ids:
         print(f"Adventure for {id}")
@@ -32,25 +34,32 @@ def execute(acc, ids):
             continue
         if latest_block_timestamp <= _log:
             print(f"Next adventure after {_log - latest_block_timestamp}s")
-            continue
+        else:
+            try:
+                ret = rarity.adventure(id)
+                _xp, _log, _class, _level = rarity.summoner(id)
+            except ValueError as e:
+                print(f"Error for {id} adventure, {e}")
 
-        try:
-            ret = rarity.adventure(id)
-            _xp, _log, _class, _level = rarity.summoner(id)
-        except ValueError as e:
-            print(f"Error for {id} adventure, {e}")
-
-        try:
-            if _xp >= rarity.xp_required(_level):
-                ret = rarity.level_up(id)
-        except ValueError as e:
-            print(f"Error for {id} level_up, {e}")
+            try:
+                if _xp >= rarity.xp_required(_level):
+                    ret = rarity.level_up(id)
+            except ValueError as e:
+                print(f"Error for {id} level_up, {e}")
         
         try:
             if gold.claimable(id) > 0:
                 gold.claim(id)
         except ValueError as e:
             print(f"Error for {id} claim gold, {e}")
+        
+        try:
+            _log = craft1.adventurers_log(id)
+            if latest_block_timestamp > _log:
+                craft1.adventure(id)
+                print(f"{id} collect materials from Craft(I), total {craft1.balanceOf(id)} materials now")
+        except ValueError as e:
+            print(f"Error for {id} Craft(I) adventure, {e}")
 
 
 def load_config():
